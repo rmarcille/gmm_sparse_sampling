@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Sep 16 15:28:16 2021
+Created on Wed Mar 01 19:08:16 2023
 
-@author: MT
+@author: robin.marcille - mthiebau0107
 """
+
 from sklearn.decomposition import PCA
 import numpy as np
 import xarray as xr
@@ -23,7 +24,7 @@ def read_from_nc_files(years = ['2016', '2017', '2018']):
     
     for i, year in enumerate(years):
         #Read the nc files of year using xarray
-        ds = xr.open_mfdataset(f'.\_Med\{year}\nc_files\*.nc', concat_dim='t', combine='nested')
+        ds = xr.open_mfdataset(f'./data/_Med/{year}/nc_files' + r'\*.nc', concat_dim='t', combine='nested')
         u = np.asarray(np.squeeze(ds.variables['u'][:]))    # u10m: eastward wind at 10m (zonal wind)
         v = np.asarray(np.squeeze(ds.variables['v'][:]))    # v10m: northward wind at 10m (meridional wind)
 
@@ -38,7 +39,7 @@ def read_from_nc_files(years = ['2016', '2017', '2018']):
             v_out = np.concatenate((v_out, v), axis = 0)
         
     #Extract the land/sea mask
-    dM = nc.Dataset('.\_Med\mask.nc')
+    dM = nc.Dataset('.\data\_Med\mask.nc')
     mask = dM['mask'][:]
     lat = dM['lat'][:]
     lon = dM['lon'][:]
@@ -50,10 +51,10 @@ def read_from_nc_files(years = ['2016', '2017', '2018']):
     u = u*mask
     v = v*mask  
 
-    return {'u': u, 'v': v}, lat, lon
+    return {'u': u, 'v': v}, lat, lon, mask
 
 
-def compute_EOFs(u, v, lat, lon):
+def compute_EOFs(u, v, lat, lon, mask, N_eofs):
     # reshape in 2D (time, space)
     Xu = np.reshape(u, (u.shape[0]*u.shape[1], len(lat)*len(lon)), order = 'F')
     Xv = np.reshape(v, (v.shape[0]*v.shape[1], len(lat)*len(lon)), order = 'F')
@@ -66,8 +67,8 @@ def compute_EOFs(u, v, lat, lon):
     sea = ~land
 
     # Keep only sea grid-points
-    Xu = Xu[:,sea]
-    Xv = Xv[:,sea]
+    Xu = Xu[:, sea]
+    Xv = Xv[:, sea]
 
     # Get rid of remaining NaN points in v
     df = pd.DataFrame(Xv)
@@ -81,7 +82,7 @@ def compute_EOFs(u, v, lat, lon):
 
     ## EOF decomposition
     ## instantiates the PCA object define the limit to compute the EOFs
-    lim = 0.995
+    lim = 0.90
 
     pca_Xu = PCA(n_components = lim)
     pca_Xv = PCA(n_components = lim)
@@ -124,4 +125,18 @@ def compute_EOFs(u, v, lat, lon):
     EOF_recons_Xu = ma.masked_values(np.reshape(EOF_recons_Xu, (ipc_Xu, len(lat), len(lon)), order='F'), -999.)
     EOF_recons_Xv = ma.masked_values(np.reshape(EOF_recons_Xv, (ipc_Xv, len(lat), len(lon)), order='F'), -999.)
     
-    return {'EOFs_u' : EOF_recons_Xu, 'EOFs_v' : EOF_recons_Xv, 'pca_score_u' : pca_score_Xu, 'pca_score_v' : pca_score_Xv}
+    return {'u' : EOF_recons_Xu, 'v' : EOF_recons_Xv}
+
+def read_eofs(EOFs, mask, N_eofs, lat_flat):
+    EOFs_u = EOFs['u'][:N_eofs, :, :] * mask
+    EOFs_v = EOFs['v'][:N_eofs, :, :] * mask
+    EOFs_u = np.ma.masked_array(EOFs_u, np.isnan(EOFs_u))
+    EOFs_v = np.ma.masked_array(EOFs_v, np.isnan(EOFs_v))
+    sea2 = ~EOFs_u.mask
+    EOFs_v = np.reshape(EOFs_v[sea2], (N_eofs, len(lat_flat)))
+    EOFs_u = np.reshape(EOFs_u[sea2], (N_eofs, len(lat_flat)))
+    V_svd = pd.concat([pd.DataFrame(EOFs_u.T), pd.DataFrame(EOFs_v.T)], axis = 1)
+
+    EOFs = np.vstack((EOFs_u, EOFs_v))
+
+    return EOFs_u, EOFs_v, EOFs, V_svd
