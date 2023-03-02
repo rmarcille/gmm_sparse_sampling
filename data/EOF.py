@@ -15,50 +15,30 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
 
+def compute_EOFs(u, v, lat, lon, mask, idx_train, N_eofs):
+    """Compute EOFs of u and v fields
 
-def read_from_nc_files(years = ['2016', '2017', '2018']):
+    Args:
+        u (np masked array): masked array of zonal velocity
+        v (np masked array): masked array of meridional velocity
+        lat (numpy array): list of grid latitudes
+        lon (numpy array): list of grid longitudes
+        mask (np masked array): land/sea mask
+        N_eofs (float): Number of EOFs to compute. If an int > 1, computes up to N_eofs for u and v. 
+                        if N_eofs is a float < 1, computes EOFs so that the variance explained is == N_eofs
+
+    Returns:
+        dict: dictionnary containing the EOFs of u and v, and their 2D spatial reconstructions with masks
     """
-    Extract MeteoNet data from nc files
-    Mask continental points
-    """
-    
-    for i, year in enumerate(years):
-        #Read the nc files of year using xarray
-        ds = xr.open_mfdataset(f'./data/_Med/{year}/nc_files' + r'\*.nc', concat_dim='t', combine='nested')
-        u = np.asarray(np.squeeze(ds.variables['u'][:]))    # u10m: eastward wind at 10m (zonal wind)
-        v = np.asarray(np.squeeze(ds.variables['v'][:]))    # v10m: northward wind at 10m (meridional wind)
 
-        #Initialize output
-        if i == 0:
-            u_out = u
-            v_out = v
-
-        #Concatenate in time
-        else: 
-            u_out = np.concatenate((u_out, u), axis = 0)
-            v_out = np.concatenate((v_out, v), axis = 0)
-        
-    #Extract the land/sea mask
-    dM = nc.Dataset('.\data\_Med\mask.nc')
-    mask = dM['mask'][:]
-    lat = dM['lat'][:]
-    lon = dM['lon'][:]
-
-    mask[mask==1] = float('nan')
-    mask[mask==0] = 1
-    
-    #Mask land points
-    u = u*mask
-    v = v*mask  
-
-    return {'u': u, 'v': v}, lat, lon, mask
-
-
-def compute_EOFs(u, v, lat, lon, mask, N_eofs):
     # reshape in 2D (time, space)
     Xu = np.reshape(u, (u.shape[0]*u.shape[1], len(lat)*len(lon)), order = 'F')
     Xv = np.reshape(v, (v.shape[0]*v.shape[1], len(lat)*len(lon)), order = 'F')
 
+    #Keep training index only 
+    Xu = Xu[idx_train, :]
+    Xv = Xv[idx_train, :]
+    
     # mask the land points
     Xu = ma.masked_array(Xu, np.isnan(Xu))
     Xv = ma.masked_array(Xv, np.isnan(Xv))
@@ -81,62 +61,81 @@ def compute_EOFs(u, v, lat, lon, mask, N_eofs):
     Xv_scaler = sc.fit_transform(Xv)
 
     ## EOF decomposition
-    ## instantiates the PCA object define the limit to compute the EOFs
-    lim = 0.90
-
-    pca_Xu = PCA(n_components = lim)
-    pca_Xv = PCA(n_components = lim)
+    pca_Xu = PCA(n_components = N_eofs)
+    pca_Xv = PCA(n_components = N_eofs)
 
     # fit
     pca_Xu.fit(Xu_scaler)
     pca_Xv.fit(Xv_scaler)
 
-    ## keep number of PC sufficient to explain lim = 99 % of the original variance
-    ipc_Xu = np.where(pca_Xu.explained_variance_ratio_.cumsum() >= lim)[0][0]
-    ipc_Xv = np.where(pca_Xv.explained_variance_ratio_.cumsum() >= lim)[0][0]
-
-    pca_score_Xu = pca_Xu.explained_variance_ratio_
-    pca_score_Xv = pca_Xv.explained_variance_ratio_
-
-    ## The Principal Components (PCs) are obtained by using the transform method of the pca object (pca_Xi_scaler)
+    ## The Principal Components (PCs) are obtained by using the transform method of the pca object (pca_Xu_scaler)
     PCs_Xu = pca_Xu.transform(Xu_scaler)
-    Pcs_Xu = PCs_Xu[:,:ipc_Xu]
-
     PCs_Xv = pca_Xv.transform(Xv_scaler)
-    Pcs_Xv = PCs_Xv[:,:ipc_Xv]
 
-    # The Empirical Orthogonal Functions (EOFs) are contained in the components_ attribute of the pca object (pca_Xi_scaler)
+    # The Empirical Orthogonal Functions (EOFs) are contained in the components_ attribute of the pca object (pca_Xu_scaler)
     EOFs_Xu = pca_Xu.components_
     EOFs_Xv = pca_Xv.components_
 
-    EOFs_Xu = EOFs_Xu[:ipc_Xu,:]
-    EOFs_Xv = EOFs_Xv[:ipc_Xv,:]
+    if N_eofs < 1:
+    ## N_eofs is the limit of variance explained to compute the EOFs
+    ## keep number of PC sufficient to explain lim = 99 % of the original variance - Un-comment to run
+        ipc_Xu = np.where(pca_Xu.explained_variance_ratio_.cumsum() >= N_eofs)[0][0]
+        ipc_Xv = np.where(pca_Xv.explained_variance_ratio_.cumsum() >= N_eofs)[0][0]
+
+        pca_score_Xu = pca_Xu.explained_variance_ratio_
+        pca_score_Xv = pca_Xv.explained_variance_ratio_
+
+        Pcs_Xu = PCs_Xu[:, :ipc_Xu]
+        Pcs_Xv = PCs_Xv[:, :ipc_Xv]
+
+        EOFs_Xu = EOFs_Xu[:ipc_Xu, :]
+        EOFs_Xv = EOFs_Xv[:ipc_Xv, :]
+
+    else:
+        ipc_Xu = N_eofs
+        ipc_Xv = N_eofs
 
     ### Recontruction of the 2D fields
-    EOF_recons_Xu = np.ones((ipc_Xu, len(lat) * len(lon))) * -999.
-    EOF_recons_Xv = np.ones((ipc_Xv, len(lat) * len(lon))) * -999.
+    EOF_recons_Xu = np.ones((N_eofs, len(lat) * len(lon))) * -999.
+    EOF_recons_Xv = np.ones((N_eofs, len(lat) * len(lon))) * -999.
 
-    for i in range(ipc_Xu): 
-        EOF_recons_Xu[i,sea] = EOFs_Xu[i,:]
+    for i in range(N_eofs): 
+        EOF_recons_Xu[i, sea] = EOFs_Xu[i, :]
+        EOF_recons_Xv[i, sea] = EOFs_Xv[i, :]
         
-    for i in range(ipc_Xv): 
-        EOF_recons_Xv[i,sea] = EOFs_Xv[i,:]
-        
-    EOF_recons_Xu = ma.masked_values(np.reshape(EOF_recons_Xu, (ipc_Xu, len(lat), len(lon)), order='F'), -999.)
-    EOF_recons_Xv = ma.masked_values(np.reshape(EOF_recons_Xv, (ipc_Xv, len(lat), len(lon)), order='F'), -999.)
+    EOF_recons_Xu = ma.masked_values(np.reshape(EOF_recons_Xu, (N_eofs, len(lat), len(lon)), order='F'), -999.)
+    EOF_recons_Xv = ma.masked_values(np.reshape(EOF_recons_Xv, (N_eofs, len(lat), len(lon)), order='F'), -999.)
     
-    return {'u' : EOF_recons_Xu, 'v' : EOF_recons_Xv}
+    return {'EOFs_u' : EOFs_Xu, 'EOFs_v' : EOFs_Xv, 'EOFs_u_2d' : EOF_recons_Xu, 'EOFs_v_2d' : EOF_recons_Xv}
 
-def read_eofs(EOFs, mask, N_eofs, lat_flat):
-    EOFs_u = EOFs['u'][:N_eofs, :, :] * mask
-    EOFs_v = EOFs['v'][:N_eofs, :, :] * mask
-    EOFs_u = np.ma.masked_array(EOFs_u, np.isnan(EOFs_u))
-    EOFs_v = np.ma.masked_array(EOFs_v, np.isnan(EOFs_v))
-    sea2 = ~EOFs_u.mask
-    EOFs_v = np.reshape(EOFs_v[sea2], (N_eofs, len(lat_flat)))
-    EOFs_u = np.reshape(EOFs_u[sea2], (N_eofs, len(lat_flat)))
+
+
+def eofs_2d_to_1d(EOFs, N_eofs):
+    """
+    Reshape EOFs from 2D to 1D, masking land points and taking a subset of EOFs
+    """
+
+    #Select subset of PCs
+    EOFs_u = EOFs['u'][:N_eofs, :, :]
+    EOFs_v = EOFs['v'][:N_eofs, :, :]
+
+    #Extract mask and number of sea points
+    sea = ~EOFs_u.mask
+    sea_0 = ~EOFs_u[0, :, :].mask
+    N_sea = (sea_0 == 1).sum()
+
+    #reshape 2D to 1D - Concatenate results
+    EOFs_v = np.reshape(EOFs_v[sea], (N_eofs, N_sea))
+    EOFs_u = np.reshape(EOFs_u[sea], (N_eofs, N_sea))
     V_svd = pd.concat([pd.DataFrame(EOFs_u.T), pd.DataFrame(EOFs_v.T)], axis = 1)
-
     EOFs = np.vstack((EOFs_u, EOFs_v))
 
     return EOFs_u, EOFs_v, EOFs, V_svd
+
+def reduced_data(df, EOFs_u, EOFs_v):
+    n_input_points = int(df.shape[1]/2)
+    Yu = pd.DataFrame(np.dot(df.iloc[:, :n_input_points], EOFs_u.T))
+    Yv = pd.DataFrame(np.dot(df.iloc[:, n_input_points:], EOFs_v.T))
+    df_output = pd.concat([Yu, Yv], axis = 1)
+
+    return df_output
