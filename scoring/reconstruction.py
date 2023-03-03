@@ -6,29 +6,46 @@ Created on Wed Mar 02 16:22:15 2023
 """
 
 import numpy as np
+import pandas as pd 
 
-# def LeastSquares_reconstruction(X, Y, Xt, Npc=10): 
-#     """Perform Least Squares regression to reconstruct the wind speed 
+def wind_reconstruction_from_index(df_med, EOFs, gamma_index, train_index, test_index):
 
-#     Args:
-#         X (_type_): _description_
-#         Y (_type_): _description_
-#         Xt (_type_): _description_
-#         Yt (_type_): _description_
-#         V (_type_): _description_
-#         Npc (int, optional): _description_. Defaults to 10.
-#         nrmse (bool, optional): _description_. Defaults to False.
+    n_inputs_points = int(df_med.shape[1]/2)
+    n_eofs = int(EOFs.shape[0]/2)
+    
+    #Coefficients in the reduced basis - to be predicted
+    a_output_u = pd.DataFrame(np.dot(df_med.iloc[:, :n_inputs_points], EOFs[:n_eofs, :].T))
+    a_output_v = pd.DataFrame(np.dot(df_med.iloc[:, n_inputs_points:], EOFs[n_eofs:, :].T))
+    a_output = pd.concat((a_output_u, a_output_v), axis = 1)
+    a_output.index = df_med.index
+    
+    #The observed wind speed - input
+    Y_obs = df_med.iloc[:, gamma_index]
 
-#     Returns:
-#         _type_: _description_
-#     """
+    #Train - test split
+    Y_obs_test = Y_obs.iloc[test_index, :]
+    Y_obs_train = Y_obs.iloc[train_index, :]
 
-#     X = np.hstack((np.ones((X.shape[0], 1)), X))
-#     beta_hat = np.dot(np.dot(np.linalg.inv(np.dot(X.T, X)), X.T),Y)
-#     Ypred = np.dot(beta_hat.T, np.hstack((np.ones((Xt.shape[0], 1)), Xt)).T).T
+    a_true_train = a_output.iloc[train_index, :]
+    a_true_test = a_output.iloc[test_index, :]
 
-#     return Ypred
+    #Perform linear regression between observed wind speed and reduced basis coefficients
+    beta_hat = np.dot(np.dot(np.linalg.inv(np.dot(Y_obs_train.T, Y_obs_train)), Y_obs_train.T), a_true_train)
 
+    #Compute reduced basis prediction from measurements on test split
+    a_pred_test = np.dot(beta_hat.T,  Y_obs_test.T)
+
+    #Reconstruct the full state
+    X_pred_test_u = np.dot(EOFs[:n_eofs, :].T, a_pred_test[:n_eofs, :])
+    X_pred_test_v = np.dot(EOFs[n_eofs:, :].T, a_pred_test[n_eofs:, :])
+    X_pred_test = np.vstack((X_pred_test_u, X_pred_test_v)).T
+
+
+    X_true_test_u = np.dot(EOFs[:n_eofs, :].T, a_true_test.iloc[:, :n_eofs].T)
+    X_true_test_v = np.dot(EOFs[n_eofs:, :].T, a_true_test.iloc[:, n_eofs:].T)
+    X_true_test = np.vstack((X_true_test_u, X_true_test_v)).T
+
+    return X_pred_test, X_true_test
 
 def LeastSquares_reconstruction(Y_obs_train, a_train, Y_obs_test): 
     Y_obs_train = np.hstack((np.ones((Y_obs_train.shape[0], 1)), Y_obs_train))

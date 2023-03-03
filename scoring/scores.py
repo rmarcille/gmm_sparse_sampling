@@ -7,20 +7,20 @@ Created on Wed Mar 02 16:22:15 2023
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-def score_reconstructed(Yt, Yp, V, Npc):
-    
-    NpcT = int(Yt.shape[1]/2)
-    Ytestu = np.dot(Yt[:, :NpcT], V[:, :NpcT].T)
-    Ytestv = np.dot(Yt[:, NpcT:], V[:, NpcT:].T)
-    
-    Ytest = np.hstack((Ytestu, Ytestv))
-    umagtest = np.sqrt(Ytestu**2 + Ytestv**2)
-    
-    Ypredu = np.dot(Yp[:, :Npc], V[:, :Npc].T)
-    Ypredv = np.dot(Yp[:, Npc:], V[:, NpcT:Npc + NpcT].T)
-    Ypredrec = np.hstack((Ypredu, Ypredv))
-    umagpred = np.sqrt(Ypredu**2 + Ypredv**2)
+def score_reconstructed(X_pred, X_test):
+    n_inputs = int(X_test.shape[1]/2)
 
-    err = mean_squared_error(umagtest, umagpred, squared = False)
-    err_uv = mean_squared_error(Ypredrec, Ytest, squared = False)
-    return err, err_uv
+    umagtest = np.sqrt(X_test[:, :n_inputs]**2 + X_test[: , n_inputs:]**2)
+    umagpred = np.sqrt(X_pred[:, :n_inputs]**2 + X_pred[: , n_inputs:]**2)
+
+    err_umag = mean_squared_error(umagtest, umagpred, squared = False)
+    err_uv = mean_squared_error(X_pred, X_test, squared = False)
+
+    max_umagpred = umagpred.max(axis = 0)
+    max_umagtest = umagtest.max(axis = 0)
+    err_umax = mean_squared_error(max_umagpred, max_umagtest, squared = False)
+
+    mean_umagpred = umagpred.mean(axis = 0)
+    mean_umagtest = umagtest.mean(axis = 0)
+    err_umean = mean_squared_error(mean_umagpred, mean_umagtest, squared = False)
+    return err_umag, err_uv, err_umax, err_umean

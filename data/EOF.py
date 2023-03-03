@@ -15,7 +15,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
 
-def compute_EOFs(u, v, lat, lon, mask, idx_train, N_eofs):
+def compute_EOFs(u, v, lat, lon, mask, idx_train, idx_test, N_eofs):
     """Compute EOFs of u and v fields
 
     Args:
@@ -32,8 +32,8 @@ def compute_EOFs(u, v, lat, lon, mask, idx_train, N_eofs):
     """
 
     # reshape in 2D (time, space)
-    Xu = np.reshape(u, (u.shape[0]*u.shape[1], len(lat)*len(lon)), order = 'F')
-    Xv = np.reshape(v, (v.shape[0]*v.shape[1], len(lat)*len(lon)), order = 'F')
+    Xu = np.reshape(u, (u.shape[0]*u.shape[1], len(lat)*len(lon)))
+    Xv = np.reshape(v, (v.shape[0]*v.shape[1], len(lat)*len(lon)))
 
     #Keep training index only 
     Xu = Xu[idx_train, :]
@@ -103,10 +103,11 @@ def compute_EOFs(u, v, lat, lon, mask, idx_train, N_eofs):
         EOF_recons_Xu[i, sea] = EOFs_Xu[i, :]
         EOF_recons_Xv[i, sea] = EOFs_Xv[i, :]
         
-    EOF_recons_Xu = ma.masked_values(np.reshape(EOF_recons_Xu, (N_eofs, len(lat), len(lon)), order='F'), -999.)
-    EOF_recons_Xv = ma.masked_values(np.reshape(EOF_recons_Xv, (N_eofs, len(lat), len(lon)), order='F'), -999.)
+    EOF_recons_Xu = ma.masked_values(np.reshape(EOF_recons_Xu, (N_eofs, len(lat), len(lon))), -999.)
+    EOF_recons_Xv = ma.masked_values(np.reshape(EOF_recons_Xv, (N_eofs, len(lat), len(lon))), -999.)
     
-    return {'EOFs_u' : EOFs_Xu, 'EOFs_v' : EOFs_Xv, 'EOFs_u_2d' : EOF_recons_Xu, 'EOFs_v_2d' : EOF_recons_Xv}
+    return {'EOFs_u' : EOFs_Xu, 'EOFs_v' : EOFs_Xv, 'EOFs_u_2d' : EOF_recons_Xu, 
+            'EOFs_v_2d' : EOF_recons_Xv}
 
 
 

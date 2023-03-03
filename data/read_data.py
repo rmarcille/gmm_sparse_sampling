@@ -119,9 +119,9 @@ def process_lat_lon(lat, lon, mask):
     YLAT = YLAT*mask
 
     #Flatten
-    lon_flat = np.reshape(XLON, (len(lat)*len(lon)), order='F')
-    lat_flat = np.reshape(YLAT, (len(lat)*len(lon)), order='F')
-    mask_flat = np.reshape(mask, (len(lat)*len(lon)), order='F')
+    lon_flat = np.reshape(XLON, (len(lat)*len(lon)))
+    lat_flat = np.reshape(YLAT, (len(lat)*len(lon)))
+    mask_flat = np.reshape(mask, (len(lat)*len(lon)))
 
     #Mask land points
     lon_flat = np.ma.masked_array(lon_flat, np.isnan(lon_flat))
