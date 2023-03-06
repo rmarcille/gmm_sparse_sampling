@@ -25,7 +25,7 @@ To cite this code, please refer to the associated publication
 ```
 
 This project uses data from the open-source dataset MeteoNet 
-*MeteoNet, An Open Reference Dataset by Meteo France – Larvor et al. – 2020* *https://meteonet.umr-cnrm.fr/*
+> MeteoNet, An Open Reference Dataset by Meteo France – Larvor et al. – 2020, https://meteonet.umr-cnrm.fr/
 
 Methods from 
 *Yildirim et al. 2019 – Efficient sensor palcement for ocean measurements using low-dimensional concepts, Ocean Modelling* 
