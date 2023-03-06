@@ -29,5 +29,6 @@ This project uses data from the open-source dataset MeteoNet
 
 Methods from 
 > Yildirim et al. 2019 – Efficient sensor palcement for ocean measurements using low-dimensional concepts, Ocean Modelling
+
 > Manohar et al. 2018 – Data-driven sparsre sensor placement for reconstruction: demonstrating the benefits of exploiting known patterns, IEEE Control Systems Magazine
 are implemented.
