@@ -10,7 +10,8 @@ Running exemples of the different part of the code are given in the GMM_sparse_s
 
 ### References
 To cite this code, please refer to the associated publication
-'''python
+
+'''bibtex
 @software{gmm_sparse_sampling,
   author       = {Robin Marcille and
                   Maxime Thiébaut and
