@@ -28,7 +28,6 @@ This project uses data from the open-source dataset MeteoNet
 > MeteoNet, An Open Reference Dataset by Meteo France – Larvor et al. – 2020, https://meteonet.umr-cnrm.fr/
 
 Methods from 
-*Yildirim et al. 2019 – Efficient sensor palcement for ocean measurements using low-dimensional concepts, Ocean Modelling* 
-and 
-*Manohar et al. 2018 – Data-driven sparsre sensor placement for reconstruction: demonstrating the benefits of exploiting known patterns, IEEE Control Systems Magazine* 
+> Yildirim et al. 2019 – Efficient sensor palcement for ocean measurements using low-dimensional concepts, Ocean Modelling
+> Manohar et al. 2018 – Data-driven sparsre sensor placement for reconstruction: demonstrating the benefits of exploiting known patterns, IEEE Control Systems Magazine
 are implemented.
