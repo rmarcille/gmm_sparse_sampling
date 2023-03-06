@@ -112,8 +112,15 @@ def compute_EOFs(u, v, lat, lon, mask, idx_train, idx_test, N_eofs):
 
 
 def eofs_2d_to_1d(EOFs, N_eofs):
-    """
-    Reshape EOFs from 2D to 1D, masking land points and taking a subset of EOFs
+    """    Reshape EOFs from 2D to 1D, masking land points and taking a subset of EOFs
+
+
+    Args:
+        EOFs (dict): dictionnary of 2D zonal and meridional wind speed
+        N_eofs (int): Number of EOFs to consider
+
+    Returns:
+        _type_: _description_
     """
 
     #Select subset of PCs
@@ -134,6 +141,18 @@ def eofs_2d_to_1d(EOFs, N_eofs):
     return EOFs_u, EOFs_v, EOFs, V_svd
 
 def reduced_data(df, EOFs_u, EOFs_v):
+    """_summary_
+
+    Args:
+        df (pandas DataFrame): Zonal and meridional wind speed in 2D (time, grid points)
+        EOFs_u (_type_): Empirical Orthogonal functions of zonal wind speed (n EOFs, grid points)
+        EOFs_v (_type_): Empirical Orthogonal functions of meridional wind speed (n EOFs, grid points)
+
+    Returns:
+        df_output: Coefficients of the full state on the reduced basis --> to be predicted later on from 
+        limited measurements 
+    """
+
     n_input_points = int(df.shape[1]/2)
     Yu = pd.DataFrame(np.dot(df.iloc[:, :n_input_points], EOFs_u.T))
     Yv = pd.DataFrame(np.dot(df.iloc[:, n_input_points:], EOFs_v.T))

@@ -9,7 +9,20 @@ import numpy as np
 import pandas as pd 
 
 def wind_reconstruction_from_index(df_med, EOFs, gamma_index, train_index, test_index):
+    """Reconstruct wind speed from a limited number of measurements
 
+    Args:
+        df_med (pandas DataFrame): Zonal and meridional wind speed in 2D (time, grid points)
+        EOFs (numpy array): Empirical Orthogonal functions (Concatenated u and v) (n EOFs, grid points)
+        gamma_index (numpy array): list of index to consider as input
+        train_index (numpy array): time index of training dataset
+        test_index (numpy array): time index of test dataset
+
+    Returns:
+        X_pred_test (numpy array) : Reconstructed predicted wind speed on test set
+        X_true_test (numpy array) : True reduced wind speed on test set
+        X_true_test (numpy array) : True reduced wind speed on train set
+    """
     n_inputs_points = int(df_med.shape[1]/2)
     n_eofs = int(EOFs.shape[0]/2)
     
@@ -35,23 +48,17 @@ def wind_reconstruction_from_index(df_med, EOFs, gamma_index, train_index, test_
     #Compute reduced basis prediction from measurements on test split
     a_pred_test = np.dot(beta_hat.T,  Y_obs_test.T)
 
-    #Reconstruct the full state
+    #Reconstruct the full states
     X_pred_test_u = np.dot(EOFs[:n_eofs, :].T, a_pred_test[:n_eofs, :])
     X_pred_test_v = np.dot(EOFs[n_eofs:, :].T, a_pred_test[n_eofs:, :])
     X_pred_test = np.vstack((X_pred_test_u, X_pred_test_v)).T
-
 
     X_true_test_u = np.dot(EOFs[:n_eofs, :].T, a_true_test.iloc[:, :n_eofs].T)
     X_true_test_v = np.dot(EOFs[n_eofs:, :].T, a_true_test.iloc[:, n_eofs:].T)
     X_true_test = np.vstack((X_true_test_u, X_true_test_v)).T
 
-    return X_pred_test, X_true_test
+    X_true_train_u = np.dot(EOFs[:n_eofs, :].T, a_true_train.iloc[:, :n_eofs].T)
+    X_true_train_v = np.dot(EOFs[n_eofs:, :].T, a_true_train.iloc[:, n_eofs:].T)
+    X_true_train = np.vstack((X_true_train_u, X_true_train_v)).T
 
-def LeastSquares_reconstruction(Y_obs_train, a_train, Y_obs_test): 
-    Y_obs_train = np.hstack((np.ones((Y_obs_train.shape[0], 1)), Y_obs_train))
-    beta_hat = np.dot(np.dot(np.linalg.inv(np.dot(Y_obs_train.T, Y_obs_train)), Y_obs_train.T),a_train)
-    a_recons = np.dot(beta_hat.T, np.hstack((np.ones((Y_obs_test.shape[0], 1)), Y_obs_test)).T).T
-    return a_recons
-
-def inverse_reconstruction(Y_obs_test, C_gamma, V):
-    return np.dot(np.linalg.pinv(np.dot(C_gamma, V)), Y_obs_test)
+    return X_pred_test, X_true_test, X_true_train

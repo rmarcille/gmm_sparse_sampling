@@ -13,6 +13,16 @@ import numpy as np
 
 
 def plot_EOF(EOF, lat, lon, n_eof, param):
+    """plot EOF example
+
+    Args:
+        EOF (numpy array): Empirical Orthogonal functions (Concatenated u and v) (n EOFs, grid points)
+        lat (numpy array): latitudes of grid points (1D)
+        lon (numpy array): longitudes of grid points (1D)
+        n_eof (_type_): number of EOF to plot
+        param (_type_): parameter to plot (u / v)
+    """
+
     df_eof = pd.DataFrame({'param' : EOF[n_eof, :], 'lat' : lat, 'lon' : lon})
     eof_map = pd.pivot_table(df_eof, values = 'param', index = 'lat', columns = 'lon')
     lat = pd.DataFrame(lat).round(3)
@@ -43,7 +53,17 @@ def plot_EOF(EOF, lat, lon, n_eof, param):
     plt.yticks([43, 43.5]) 
     ax0.tick_params(axis='y', labelsize=16, direction = 'out', length = 3, color = 'k', width = 1)
 
+
 def plot_sensors_locations(lon_flat, lat_flat, idx_sensors, EOF, n_eof = 0):
+    """Show sensors locations for different methods, with EOF of zonal or meridional wind speed as background
+
+    Args:
+        lon_flat (np array): longitudes of grid points (1D)
+        lat_flat (np array): latitudes of grid points (1D)
+        idx_sensors (dict): dict of lists of sensors locations
+        EOF (numpy array): Empirical Orthogonal functions (Concatenated u and v) (n EOFs, grid points)
+        n_eof (int, optional): number of EOF to plot. If n_eof > EOF.shape[0]/2, parameter v is considered. Defaults to 0.
+    """
     if n_eof < 10:
         param = 'u'
     df_eof = pd.DataFrame({'param' : EOF[n_eof, :], 'lat' : lat_flat, 'lon' : lon_flat})
