@@ -2,7 +2,7 @@
 """
 Created on Wed Mar 01 19:08:16 2023
 
-@author: robin.marcille - mthiebau0107
+@author: robin.marcille - maxime.thiebaut
 """
 
 from sklearn.decomposition import PCA
