@@ -33,3 +33,5 @@ Methods from
 > Manohar et al. 2018 – Data-driven sparsre sensor placement for reconstruction: demonstrating the benefits of exploiting known patterns, IEEE Control Systems Magazine
 
 are implemented.
+
+[![DOI](https://zenodo.org/badge/608211124.svg)](https://zenodo.org/badge/latestdoi/608211124)
