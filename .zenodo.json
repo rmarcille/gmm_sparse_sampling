@@ -1,0 +1,25 @@
+{
+    "upload_type": "software",
+
+    "creators": [
+        {
+            "affiliation": "France Energies Marines",
+            "name": "Marcille, Robin"
+        },
+        {
+            "affiliation": "France Energies Marines",
+            "name": "Thiébaut, Maxime"
+        }
+    ],
+
+    "title": "gmm_sparse_sampling: a repository for the sparse sampling of offshore wind resource using gaussian mixture models",
+
+    "related_identifiers": [
+        {
+            "scheme": "doi",
+            "identifier": "10.5194/wes-2022-39",
+            "relation": "isSupplementTo",
+            "resource_type": "publication-article"
+        }
+    ]
+}
